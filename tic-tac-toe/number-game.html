@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Number Game</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap');
+
+:root {
+  --bg: #080c0f;
+  --felt: #0d1a14;
+  --surface: #111820;
+  --card: #141e28;
+  --border: #1e2d3d;
+  --border-bright: #2a3f55;
+  --p1: #00e5ff;
+  --p1-dim: rgba(0,229,255,0.12);
+  --p1-glow: rgba(0,229,255,0.4);
+  --p2: #ff6b35;
+  --p2-dim: rgba(255,107,53,0.12);
+  --p2-glow: rgba(255,107,53,0.4);
+  --text: #e8f0f8;
+  --muted: #4a6480;
+  --muted2: #2a3f55;
+  --gold: #ffd700;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%; min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,100,180,0.12) 0%, transparent 70%),
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.015) 39px, rgba(255,255,255,0.015) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.015) 39px, rgba(255,255,255,0.015) 40px);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 32px 16px 60px;
+  min-height: 100vh;
+}
+
+/* ── HEADER ── */
+.header {
+  text-align: center;
+  margin-bottom: 36px;
+  animation: fadeDown 0.6s ease both;
+}
+
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(48px, 8vw, 72px);
+  letter-spacing: 12px;
+  line-height: 1;
+  color: var(--text);
+  position: relative;
+  display: inline-block;
+}
+
+.logo::after {
+  content: 'THE NUMBER GAME';
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  background: linear-gradient(90deg, var(--p1), transparent 40%, transparent 60%, var(--p2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  opacity: 0.5;
+}
+
+.tagline {
+  font-size: 10px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* ── MAIN GAME SHELL ── */
+.game-shell {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeUp 0.7s 0.2s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── PLAYER PANELS ── */
+.players {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.player-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 16px 20px 14px;
+  position: relative;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  overflow: hidden;
+}
+
+.player-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  transition: opacity 0.3s;
+  opacity: 0;
+}
+
+.player-panel.p1::before { background: var(--p1); }
+.player-panel.p2::before { background: var(--p2); }
+
+.player-panel.active-panel {
+  border-color: var(--border-bright);
+}
+.player-panel.p1.active-panel { box-shadow: 0 0 24px -8px var(--p1-glow); }
+.player-panel.p2.active-panel { box-shadow: 0 0 24px -8px var(--p2-glow); }
+.player-panel.active-panel::before { opacity: 1; }
+
+.panel-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.player-label {
+  font-size: 9px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.player-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  letter-spacing: 3px;
+  margin-top: 2px;
+}
+
+.player-panel.p1 .player-name { color: var(--p1); }
+.player-panel.p2 .player-name { color: var(--p2); }
+
+.score-badge {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 2px;
+  line-height: 1;
+  color: var(--muted2);
+  text-align: right;
+}
+
+.player-panel.p1 .score-badge { color: rgba(0,229,255,0.35); }
+.player-panel.p2 .score-badge { color: rgba(255,107,53,0.35); }
+.player-panel.p1 .score-badge.has-score { color: var(--p1); }
+.player-panel.p2 .score-badge.has-score { color: var(--p2); }
+
+.score-label { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+.claimed-numbers {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-height: 32px;
+  align-items: center;
+}
+
+.num-chip {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  border: 1px solid;
+  transform: scale(0) rotate(-10deg);
+  animation: chipIn 0.2s ease forwards;
+}
+
+@keyframes chipIn {
+  to { transform: scale(1) rotate(0deg); }
+}
+
+.num-chip.p1 { border-color: var(--p1); color: var(--p1); background: var(--p1-dim); }
+.num-chip.p2 { border-color: var(--p2); color: var(--p2); background: var(--p2-dim); }
+
+.num-chip.win-chip {
+  animation: winChipPulse 0.5s ease infinite alternate;
+}
+
+@keyframes winChipPulse {
+  from { transform: scale(1); }
+  to   { transform: scale(1.15); }
+}
+
+.turn-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--muted2);
+  flex-shrink: 0;
+  transition: background 0.3s, box-shadow 0.3s;
+  align-self: center;
+  margin-left: auto;
+}
+
+.player-panel.p1.active-panel .turn-dot {
+  background: var(--p1);
+  box-shadow: 0 0 8px var(--p1);
+  animation: dotPulse 1s ease-in-out infinite;
+}
+.player-panel.p2.active-panel .turn-dot {
+  background: var(--p2);
+  box-shadow: 0 0 8px var(--p2);
+  animation: dotPulse 1s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(0.6); opacity: 0.5; }
+}
+
+/* ── NUMBER GRID ── */
+.grid-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.number-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 620px;
+}
+
+.tile {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(20px, 3.5vw, 34px);
+  border: 1px solid var(--border-bright);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.1s, border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+  user-select: none;
+  overflow: hidden;
+}
+
+.tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.06);
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.tile:not(.taken):hover {
+  transform: translateY(-3px) scale(1.04);
+  border-color: var(--text);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+.tile:not(.taken):hover::after { opacity: 1; }
+
+.tile:not(.taken):active {
+  transform: translateY(0) scale(0.96);
+}
+
+.tile.taken { cursor: not-allowed; }
+
+.tile.taken-p1 {
+  border-color: var(--p1);
+  color: var(--p1);
+  background: var(--p1-dim);
+  box-shadow: inset 0 0 12px rgba(0,229,255,0.08);
+}
+
+.tile.taken-p2 {
+  border-color: var(--p2);
+  color: var(--p2);
+  background: var(--p2-dim);
+  box-shadow: inset 0 0 12px rgba(255,107,53,0.08);
+}
+
+.tile.win-tile.taken-p1 {
+  animation: winGlowP1 0.5s ease infinite alternate;
+  z-index: 1;
+}
+.tile.win-tile.taken-p2 {
+  animation: winGlowP2 0.5s ease infinite alternate;
+  z-index: 1;
+}
+
+@keyframes winGlowP1 {
+  from { box-shadow: 0 0 10px var(--p1-glow); background: var(--p1-dim); }
+  to   { box-shadow: 0 0 30px var(--p1-glow), inset 0 0 20px rgba(0,229,255,0.2); background: rgba(0,229,255,0.2); }
+}
+@keyframes winGlowP2 {
+  from { box-shadow: 0 0 10px var(--p2-glow); background: var(--p2-dim); }
+  to   { box-shadow: 0 0 30px var(--p2-glow), inset 0 0 20px rgba(255,107,53,0.2); background: rgba(255,107,53,0.2); }
+}
+
+.tile-appear {
+  animation: tileAppear 0.12s ease both;
+}
+
+@keyframes tileAppear {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* ── STATUS BAR ── */
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 620px;
+  padding-top: 4px;
+}
+
+.status-text {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color 0.3s;
+}
+
+.status-text .highlight {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  border: 1px solid var(--border-bright);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.btn:hover { border-color: var(--text); color: var(--text); background: rgba(255,255,255,0.04); }
+
+/* ── WIN OVERLAY ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4,8,12,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  backdrop-filter: blur(4px);
+}
+
+.overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.win-card {
+  background: var(--card);
+  border: 1px solid var(--border-bright);
+  padding: 48px 56px;
+  text-align: center;
+  max-width: 380px;
+  width: 90%;
+  position: relative;
+  transform: scale(0.85) translateY(20px);
+  transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.overlay.visible .win-card {
+  transform: scale(1) translateY(0);
+}
+
+.win-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.win-card.p1-win::before { background: linear-gradient(90deg, transparent, var(--p1), transparent); }
+.win-card.p2-win::before { background: linear-gradient(90deg, transparent, var(--p2), transparent); }
+.win-card.draw-end::before { background: linear-gradient(90deg, transparent, var(--muted), transparent); }
+
+.win-eyebrow {
+  font-size: 9px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.win-headline {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 72px;
+  letter-spacing: 6px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.win-card.p1-win .win-headline { color: var(--p1); text-shadow: 0 0 40px var(--p1-glow); }
+.win-card.p2-win .win-headline { color: var(--p2); text-shadow: 0 0 40px var(--p2-glow); }
+.win-card.draw-end .win-headline { color: var(--text); font-size: 52px; letter-spacing: 4px; }
+
+.win-sub {
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+
+.win-triple {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 32px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 3px;
+}
+
+.win-triple-num {
+  width: 48px; height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid;
+}
+
+.win-card.p1-win .win-triple-num { border-color: var(--p1); color: var(--p1); background: var(--p1-dim); }
+.win-card.p2-win .win-triple-num { border-color: var(--p2); color: var(--p2); background: var(--p2-dim); }
+
+.win-triple-op { color: var(--muted); font-size: 20px; }
+.win-triple-eq { font-size: 20px; color: var(--muted); }
+.win-triple-result { font-family: 'Bebas Neue', sans-serif; font-size: 32px; }
+.win-card.p1-win .win-triple-result { color: var(--p1); }
+.win-card.p2-win .win-triple-result { color: var(--p2); }
+
+.draw-text {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+.win-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn-primary {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  padding: 11px 24px;
+  border: 1px solid;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.win-card.p1-win .btn-primary { border-color: var(--p1); color: var(--p1); }
+.win-card.p1-win .btn-primary:hover { background: var(--p1); color: var(--bg); }
+.win-card.p2-win .btn-primary { border-color: var(--p2); color: var(--p2); }
+.win-card.p2-win .btn-primary:hover { background: var(--p2); color: var(--bg); }
+.win-card.draw-end .btn-primary { border-color: var(--border-bright); color: var(--text); }
+.win-card.draw-end .btn-primary:hover { background: var(--border-bright); color: var(--text); }
+
+/* ── MATH HINT (bottom) ── */
+.hint {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--muted2);
+  text-transform: uppercase;
+  animation: fadeUp 1s 0.8s ease both;
+}
+
+/* ── CONFETTI PARTICLES ── */
+.confetti-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 300;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 6px;
+  height: 10px;
+  opacity: 0;
+  animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 500px) {
+  .win-card { padding: 36px 28px; }
+  .win-headline { font-size: 56px; }
+  .players { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">The Number Game</div>
+  <p class="tagline">Pick 3 numbers that sum to 15 &nbsp;·&nbsp; First to win takes the round</p>
+</header>
+
+<div class="game-shell">
+
+  <!-- Players -->
+  <div class="players">
+    <div class="player-panel p1 active-panel" id="panel1">
+      <div class="panel-top">
+        <div>
+          <div class="player-label">Player</div>
+          <div class="player-name">ONE</div>
+        </div>
+        <div style="text-align:right">
+          <div class="score-badge" id="score1">0</div>
+          <div class="score-label">wins</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div class="claimed-numbers" id="chips1"></div>
+        <div class="turn-dot" id="dot1"></div>
+      </div>
+    </div>
+
+    <div class="player-panel p2" id="panel2">
+      <div class="panel-top">
+        <div>
+          <div class="player-label">Player</div>
+          <div class="player-name">TWO</div>
+        </div>
+        <div style="text-align:right">
+          <div class="score-badge" id="score2">0</div>
+          <div class="score-label">wins</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div class="claimed-numbers" id="chips2"></div>
+        <div class="turn-dot" id="dot2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div class="grid-section">
+    <div class="number-grid" id="grid"></div>
+    <div class="status-bar">
+      <div class="status-text" id="statusText">
+        <span class="highlight">Player One</span> — choose a number
+      </div>
+      <button class="btn" id="resetBtn">↺ New Game</button>
+    </div>
+  </div>
+</div>
+
+<p class="hint">15 = magic square · mathematically equivalent to tic-tac-toe</p>
+
+<!-- Win Overlay -->
+<div class="overlay" id="overlay">
+  <div class="win-card" id="winCard">
+    <div class="win-eyebrow" id="winEyebrow">Winner</div>
+    <div class="win-headline" id="winHeadline">ONE</div>
+    <div class="win-sub" id="winSub">wins the round</div>
+    <div id="winTripleWrap"></div>
+    <div class="win-actions">
+      <button class="btn-primary" id="nextRoundBtn">↺ Next Round</button>
+    </div>
+  </div>
+</div>
+
+<div class="confetti-container" id="confettiContainer"></div>
+
+<script>
+const WINNING_TRIPLES = [
+  [1,5,9],[1,6,8],[2,4,9],[2,5,8],
+  [2,6,7],[3,4,8],[3,5,7],[4,5,6]
+];
+
+const CONFETTI_COLORS_P1 = ['#00e5ff','#00bcd4','#80deea','#ffffff','#b2ebf2'];
+const CONFETTI_COLORS_P2 = ['#ff6b35','#ff9800','#ffcc02','#ffffff','#ffccbc'];
+
+let state = {
+  turn: 1,
+  picks: { 1: [], 2: [] },
+  gameOver: false,
+  scores: { 1: 0, 2: 0 }
+};
+
+// DOM refs
+const grid = document.getElementById('grid');
+const chips1 = document.getElementById('chips1');
+const chips2 = document.getElementById('chips2');
+const panel1 = document.getElementById('panel1');
+const panel2 = document.getElementById('panel2');
+const dot1 = document.getElementById('dot1');
+const dot2 = document.getElementById('dot2');
+const statusText = document.getElementById('statusText');
+const overlay = document.getElementById('overlay');
+const winCard = document.getElementById('winCard');
+const winEyebrow = document.getElementById('winEyebrow');
+const winHeadline = document.getElementById('winHeadline');
+const winSub = document.getElementById('winSub');
+const winTripleWrap = document.getElementById('winTripleWrap');
+const score1El = document.getElementById('score1');
+const score2El = document.getElementById('score2');
+const confettiContainer = document.getElementById('confettiContainer');
+
+// Build grid
+for (let i = 1; i <= 9; i++) {
+  const tile = document.createElement('div');
+  tile.className = 'tile tile-appear';
+  tile.style.animationDelay = `${(i - 1) * 0.04}s`;
+  tile.textContent = i;
+  tile.dataset.num = i;
+  tile.addEventListener('click', () => handlePick(i, tile));
+  grid.appendChild(tile);
+}
+
+function handlePick(num, tile) {
+  if (state.gameOver) return;
+  if (tile.classList.contains('taken')) return;
+
+  const p = state.turn;
+  state.picks[p].push(num);
+  tile.classList.add('taken', `taken-p${p}`);
+
+  // Add chip with stagger animation delay
+  const chip = document.createElement('div');
+  chip.className = `num-chip p${p}`;
+  chip.textContent = num;
+  chip.dataset.num = num;
+  (p === 1 ? chips1 : chips2).appendChild(chip);
+
+  // Tap feedback
+  tile.style.transform = 'scale(0.88)';
+  setTimeout(() => { tile.style.transform = ''; }, 120);
+
+  // Check win
+  const triple = checkWin(state.picks[p]);
+  if (triple) {
+    endGame(p, triple);
+    return;
+  }
+
+  // Check draw
+  if (state.picks[1].length + state.picks[2].length === 9) {
+    endGame(0, null);
+    return;
+  }
+
+  // Switch turn
+  state.turn = p === 1 ? 2 : 1;
+  updateUI();
+}
+
+function checkWin(nums) {
+  if (nums.length < 3) return null;
+  for (const t of WINNING_TRIPLES) {
+    if (t.every(n => nums.includes(n))) return t;
+  }
+  return null;
+}
+
+function endGame(winner, triple) {
+  state.gameOver = true;
+
+  if (winner === 0) {
+    // Draw
+    statusText.innerHTML = 'Draw — all numbers claimed';
+    winCard.className = 'win-card draw-end';
+    winEyebrow.textContent = 'No Winner';
+    winHeadline.textContent = 'DRAW';
+    winSub.textContent = 'all 9 numbers claimed';
+    winTripleWrap.innerHTML = `<div class="draw-text">Neither player collected<br>three numbers summing to 15.</div>`;
+  } else {
+    // Win
+    state.scores[winner]++;
+    updateScores();
+
+    const pName = winner === 1 ? 'ONE' : 'TWO';
+    statusText.innerHTML = `Player ${winner === 1 ? 'One' : 'Two'} wins!`;
+
+    // Highlight winning tiles & chips
+    triple.forEach(n => {
+      const t = grid.querySelector(`[data-num="${n}"]`);
+      t.classList.add('win-tile');
+      const chips = document.getElementById(`chips${winner}`);
+      const c = chips.querySelector(`[data-num="${n}"]`);
+      if (c) c.classList.add('win-chip');
+    });
+
+    winCard.className = `win-card p${winner}-win`;
+    winEyebrow.textContent = 'Round Winner';
+    winHeadline.textContent = pName;
+    winSub.textContent = 'wins the round';
+
+    // Triple display
+    winTripleWrap.innerHTML = `
+      <div class="win-triple">
+        <div class="win-triple-num">${triple[0]}</div>
+        <span class="win-triple-op">+</span>
+        <div class="win-triple-num">${triple[1]}</div>
+        <span class="win-triple-op">+</span>
+        <div class="win-triple-num">${triple[2]}</div>
+        <span class="win-triple-eq">=</span>
+        <span class="win-triple-result">15</span>
+      </div>`;
+
+    // Confetti
+    launchConfetti(winner);
+  }
+
+  setTimeout(() => { overlay.classList.add('visible'); }, 700);
+}
+
+function updateUI() {
+  const p = state.turn;
+  const pName = p === 1 ? 'One' : 'Two';
+
+  statusText.innerHTML = `<span class="highlight">Player ${pName}</span> — choose a number`;
+
+  panel1.classList.toggle('active-panel', p === 1);
+  panel2.classList.toggle('active-panel', p === 2);
+}
+
+function updateScores() {
+  const s1 = state.scores[1];
+  const s2 = state.scores[2];
+  score1El.textContent = s1;
+  score2El.textContent = s2;
+  score1El.className = 'score-badge' + (s1 > 0 ? ' has-score' : '');
+  score2El.className = 'score-badge' + (s2 > 0 ? ' has-score' : '');
+}
+
+function reset(keepScores = true) {
+  state.turn = 1;
+  state.picks = { 1: [], 2: [] };
+  state.gameOver = false;
+  if (!keepScores) {
+    state.scores = { 1: 0, 2: 0 };
+    updateScores();
+  }
+
+  chips1.innerHTML = '';
+  chips2.innerHTML = '';
+  confettiContainer.innerHTML = '';
+  overlay.classList.remove('visible');
+
+  grid.querySelectorAll('.tile').forEach((t, i) => {
+    t.className = 'tile tile-appear';
+    t.style.animationDelay = `${i * 0.03}s`;
+    // Reset and re-trigger animation
+    t.style.animation = 'none';
+    void t.offsetWidth;
+    t.style.animation = '';
+  });
+
+  updateUI();
+}
+
+document.getElementById('resetBtn').addEventListener('click', () => reset(false));
+document.getElementById('nextRoundBtn').addEventListener('click', () => reset(true));
+
+// ── Confetti ──
+function launchConfetti(winner) {
+  const colors = winner === 1 ? CONFETTI_COLORS_P1 : CONFETTI_COLORS_P2;
+  const count = 60;
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      el.style.cssText = `
+        left: ${Math.random() * 100}%;
+        background: ${color};
+        width: ${4 + Math.random() * 6}px;
+        height: ${6 + Math.random() * 8}px;
+        border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
+        animation-duration: ${1.5 + Math.random() * 1.5}s;
+        animation-delay: 0s;
+        opacity: 1;
+      `;
+      confettiContainer.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }, i * 18);
+  }
+}
+</script>
+</body>
+</html>

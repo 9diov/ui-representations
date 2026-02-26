@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cookbook Draft</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --wood: #c8a96e;
+    --wood-dark: #a07850;
+    --wood-light: #e8d5b0;
+    --cream: #fef9f0;
+    --pa: #e05050;
+    --pb: #5080e0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #b8975a;
+    background-image: repeating-linear-gradient(
+      45deg, transparent, transparent 20px,
+      rgba(0,0,0,0.03) 20px, rgba(0,0,0,0.03) 40px
+    );
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  h1 {
+    font-family: 'Fredoka One', cursive;
+    color: #fff;
+    font-size: 2rem;
+    text-shadow: 2px 3px 0 rgba(0,0,0,0.2);
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+  .subtitle { color: rgba(255,255,255,0.85); font-size: 0.9rem; margin-bottom: 16px; font-weight: 600; }
+
+  /* Turn banner */
+  #turn-banner {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,0.95);
+    border-radius: 50px;
+    padding: 8px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    font-weight: 800; font-size: 1.1rem;
+    transition: all 0.3s;
+  }
+  #turn-banner .dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    transition: background 0.3s;
+  }
+  #turn-banner.pa .dot { background: var(--pa); }
+  #turn-banner.pb .dot { background: var(--pb); }
+  #turn-banner.pa { color: var(--pa); }
+  #turn-banner.pb { color: var(--pb); }
+
+  /* Board */
+  .board {
+    background: #e8d5a8;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.3);
+    width: 100%;
+    max-width: 900px;
+  }
+
+  /* Ingredient row */
+  .ingredients-row {
+    display: flex; gap: 8px; justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .ingredient-card {
+    width: 80px; cursor: pointer;
+    background: white;
+    border-radius: 10px;
+    border: 3px solid #ddd;
+    padding: 6px;
+    text-align: center;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    position: relative;
+    user-select: none;
+  }
+  .ingredient-card:hover:not(.claimed) {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  }
+  .ingredient-card .emoji { font-size: 2rem; display: flex; align-items: center; justify-content: center; height: 40px; }
+  .ingredient-card .label {
+    font-size: 0.55rem; font-weight: 800; letter-spacing: 0.5px;
+    text-transform: uppercase; color: #555; margin-top: 2px;
+  }
+  .ingredient-card.claimed-pa {
+    border-color: var(--pa);
+    background: #fff5f5;
+    cursor: default;
+  }
+  .ingredient-card.claimed-pb {
+    border-color: var(--pb);
+    background: #f5f8ff;
+    cursor: default;
+  }
+  .ingredient-card .claim-badge {
+    position: absolute; top: -6px; right: -6px;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; font-weight: 900; color: white;
+    display: none;
+  }
+  .ingredient-card.claimed-pa .claim-badge { display: flex; background: var(--pa); }
+  .ingredient-card.claimed-pb .claim-badge { display: flex; background: var(--pb); }
+
+  /* Recipe grid */
+  .recipes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .recipe-card {
+    background: white;
+    border-radius: 12px;
+    border: 2.5px solid #e0d0b0;
+    padding: 10px 12px;
+    position: relative;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .recipe-card .recipe-name {
+    font-size: 0.65rem; font-weight: 900; letter-spacing: 0.8px;
+    text-transform: uppercase; color: #666; margin-bottom: 8px;
+  }
+  .recipe-ingredients {
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  }
+  .recipe-ing {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #f0ece0; display: flex; align-items: center;
+    justify-content: center; font-size: 1.2rem;
+    border: 2px solid transparent;
+    transition: border-color 0.3s, background 0.3s;
+    position: relative;
+  }
+  .recipe-ing.have-pa { background: #ffe8e8; border-color: var(--pa); }
+  .recipe-ing.have-pb { background: #e8eeff; border-color: var(--pb); }
+  .plus { font-size: 0.7rem; color: #aaa; font-weight: 800; }
+
+  .recipe-card.won-pa { border-color: var(--pa); background: #fff0f0; box-shadow: 0 0 0 3px rgba(224,80,80,0.2); }
+  .recipe-card.won-pb { border-color: var(--pb); background: #f0f4ff; box-shadow: 0 0 0 3px rgba(80,128,224,0.2); }
+  .recipe-card .won-badge {
+    position: absolute; top: -8px; right: 8px;
+    font-size: 0.6rem; font-weight: 900; color: white;
+    padding: 2px 8px; border-radius: 10px;
+    display: none;
+  }
+  .recipe-card.won-pa .won-badge { display: block; background: var(--pa); }
+  .recipe-card.won-pb .won-badge { display: block; background: var(--pb); }
+
+  /* Players */
+  .players-row {
+    display: flex; gap: 16px; justify-content: center;
+    margin-top: 16px;
+  }
+  .player-panel {
+    background: white; border-radius: 12px; padding: 10px 20px;
+    text-align: center; min-width: 120px;
+    border: 3px solid transparent;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .player-panel.active-pa { border-color: var(--pa); box-shadow: 0 0 0 3px rgba(224,80,80,0.15); }
+  .player-panel.active-pb { border-color: var(--pb); box-shadow: 0 0 0 3px rgba(80,128,224,0.15); }
+  .player-panel .pname {
+    font-family: 'Fredoka One', cursive; font-size: 1.2rem;
+  }
+  .player-panel.pa-panel .pname { color: var(--pa); }
+  .player-panel.pb-panel .pname { color: var(--pb); }
+  .player-panel .score { font-size: 0.75rem; color: #888; font-weight: 700; }
+  .player-panel .icon { font-size: 1.5rem; }
+
+  /* Win overlay */
+  #win-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  #win-overlay.show { display: flex; }
+  #win-box {
+    background: white; border-radius: 24px;
+    padding: 40px; text-align: center;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+    animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  #win-box h2 { font-family: 'Fredoka One'; font-size: 2.5rem; margin-bottom: 8px; }
+  #win-box p { color: #666; font-size: 1rem; margin-bottom: 24px; }
+  #win-box button {
+    background: #4caf50; color: white; border: none;
+    font-family: 'Fredoka One'; font-size: 1.2rem;
+    padding: 12px 32px; border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(76,175,80,0.4);
+    transition: transform 0.15s;
+  }
+  #win-box button:hover { transform: scale(1.05); }
+</style>
+</head>
+<body>
+
+<h1>🍳 Cookbook Draft</h1>
+<p class="subtitle">Pick 3 ingredients to complete a recipe — first to finish wins!</p>
+
+<div id="turn-banner" class="pa">
+  <div class="dot"></div>
+  <span id="turn-text">Player A's Turn — pick an ingredient!</span>
+</div>
+
+<div class="board">
+  <div class="ingredients-row" id="ingredients-row"></div>
+  <div class="recipes-grid" id="recipes-grid"></div>
+</div>
+
+<div class="players-row">
+  <div class="player-panel pa-panel active-pa" id="panel-pa">
+    <div class="icon">🍴</div>
+    <div class="pname">Player A</div>
+    <div class="score" id="score-pa">0 recipes</div>
+  </div>
+  <div class="player-panel pb-panel" id="panel-pb">
+    <div class="icon">🥄</div>
+    <div class="pname">Player B</div>
+    <div class="score" id="score-pb">0 recipes</div>
+  </div>
+</div>
+
+<div id="win-overlay">
+  <div id="win-box">
+    <h2 id="win-title">🎉</h2>
+    <p id="win-desc"></p>
+    <button onclick="resetGame()">Play Again</button>
+  </div>
+</div>
+
+<script>
+const INGREDIENTS = [
+  { id: 'tomato',    emoji: '🍅', label: 'Tomato' },
+  { id: 'basil',     emoji: '🌿', label: 'Basil' },
+  { id: 'mozzarella',emoji: 'mozz', label: 'Mozzarella' },
+  { id: 'egg',       emoji: '🍳', label: 'Egg' },
+  { id: 'parmesan',  emoji: '🧀', label: 'Parmesan' },
+  { id: 'pasta',     emoji: '🍝', label: 'Pasta' },
+  { id: 'chicken',   emoji: '🍗', label: 'Chicken' },
+  { id: 'garlic',    emoji: '🧄', label: 'Garlic' },
+  { id: 'lemon',     emoji: '🍋', label: 'Lemon' },
+];
+
+const RECIPES = [
+  { id: 'caprese',        name: 'Caprese Bite',         ingredients: ['tomato', 'basil', 'mozzarella'] },
+  { id: 'herb-cheese',    name: 'Herb-Cheese Garlic',   ingredients: ['basil', 'parmesan', 'garlic'] },
+  { id: 'carbonara',      name: 'Carbonara Core',       ingredients: ['egg', 'parmesan', 'pasta'] },
+  { id: 'mozz-lemon',     name: 'Mozzarella Lemon Pasta',ingredients: ['mozzarella', 'pasta', 'lemon'] },
+  { id: 'lemon-garlic',   name: 'Lemon Garlic Chicken', ingredients: ['chicken', 'garlic', 'lemon'] },
+  { id: 'tomato-parm',    name: 'Tomato Parm Lemon',    ingredients: ['tomato', 'parmesan', 'lemon'] },
+  { id: 'tomato-egg',     name: 'Tomato Egg Chicken',   ingredients: ['tomato', 'egg', 'chicken'] },
+  { id: 'mozz-parm',      name: 'Mozzarella Parm Chicken', ingredients: ['mozzarella', 'parmesan', 'chicken'] },
+];
+
+let state = {};
+
+const MOZZ_SVG = `<svg width="32" height="28" viewBox="0 0 32 28" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="10" cy="18" rx="9" ry="8" fill="#f5f0e8" stroke="#d4c9a8" stroke-width="1.2"/>
+  <ellipse cx="10" cy="17" rx="9" ry="8" fill="#faf7f0" stroke="#d4c9a8" stroke-width="1.2"/>
+  <ellipse cx="22" cy="18" rx="8" ry="7" fill="#f5f0e8" stroke="#d4c9a8" stroke-width="1.2"/>
+  <ellipse cx="22" cy="17" rx="8" ry="7" fill="#faf7f0" stroke="#d4c9a8" stroke-width="1.2"/>
+  <ellipse cx="16" cy="9" rx="9" ry="8" fill="#f0ebe0" stroke="#d4c9a8" stroke-width="1.2"/>
+  <ellipse cx="16" cy="8" rx="9" ry="8" fill="#fff8ee" stroke="#d4c9a8" stroke-width="1.2"/>
+  <ellipse cx="13" cy="6" rx="2" ry="1.5" fill="rgba(255,255,255,0.7)" transform="rotate(-30 13 6)"/>
+</svg>`;
+
+function getIngEmoji(id) {
+  const ing = INGREDIENTS.find(i => i.id === id);
+  return ing?.emoji || '?';
+}
+
+function renderEmoji(emoji) {
+  if (emoji === 'mozz') return MOZZ_SVG;
+  return `<span style="font-size:2rem;line-height:1">${emoji}</span>`;
+}
+
+function initState() {
+  state = {
+    turn: 'pa', // 'pa' or 'pb'
+    claims: {}, // id -> 'pa' | 'pb'
+    wonRecipes: {}, // recipeId -> 'pa' | 'pb'
+    scores: { pa: 0, pb: 0 },
+    gameOver: false,
+  };
+}
+
+function render() {
+  renderIngredients();
+  renderRecipes();
+  renderUI();
+}
+
+function renderIngredients() {
+  const row = document.getElementById('ingredients-row');
+  row.innerHTML = '';
+  for (const ing of INGREDIENTS) {
+    const claimed = state.claims[ing.id];
+    const card = document.createElement('div');
+    card.className = 'ingredient-card' + (claimed ? ` claimed-${claimed}` : '');
+    card.innerHTML = `
+      <span class="emoji">${renderEmoji(ing.emoji)}</span>
+      <span class="label">${ing.label}</span>
+      <div class="claim-badge">${claimed === 'pa' ? 'A' : 'B'}</div>
+    `;
+    if (!claimed && !state.gameOver) {
+      card.onclick = () => claimIngredient(ing.id);
+    }
+    row.appendChild(card);
+  }
+}
+
+function renderRecipes() {
+  const grid = document.getElementById('recipes-grid');
+  grid.innerHTML = '';
+  for (const recipe of RECIPES) {
+    const won = state.wonRecipes[recipe.id];
+    const card = document.createElement('div');
+    card.className = 'recipe-card' + (won ? ` won-${won}` : '');
+    const ingsHTML = recipe.ingredients.map((id, i) => {
+      const claim = state.claims[id];
+      let cls = '';
+      if (claim === 'pa') cls = 'have-pa';
+      else if (claim === 'pb') cls = 'have-pb';
+      const ing = INGREDIENTS.find(x => x.id === id);
+      return `${i > 0 ? '<span class="plus">+</span>' : ''}<div class="recipe-ing ${cls}">${ing?.emoji === 'mozz' ? `<span style="display:inline-flex;transform:scale(0.7)">${MOZZ_SVG}</span>` : `<span style="font-size:1.2rem">${ing?.emoji}</span>`}</div>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="won-badge">${won === 'pa' ? '🏆 A' : '🏆 B'}</div>
+      <div class="recipe-name">${recipe.name}</div>
+      <div class="recipe-ingredients">${ingsHTML}</div>
+    `;
+    grid.appendChild(card);
+  }
+}
+
+function renderUI() {
+  const banner = document.getElementById('turn-banner');
+  const text = document.getElementById('turn-text');
+  if (!state.gameOver) {
+    banner.className = state.turn;
+    text.textContent = `Player ${state.turn === 'pa' ? 'A' : 'B'}'s Turn — pick an ingredient!`;
+  }
+  const pa = document.getElementById('panel-pa');
+  const pb = document.getElementById('panel-pb');
+  pa.className = `player-panel pa-panel${state.turn === 'pa' && !state.gameOver ? ' active-pa' : ''}`;
+  pb.className = `player-panel pb-panel${state.turn === 'pb' && !state.gameOver ? ' active-pb' : ''}`;
+  document.getElementById('score-pa').textContent = `${state.scores.pa} recipe${state.scores.pa !== 1 ? 's' : ''}`;
+  document.getElementById('score-pb').textContent = `${state.scores.pb} recipe${state.scores.pb !== 1 ? 's' : ''}`;
+}
+
+function claimIngredient(id) {
+  if (state.claims[id] || state.gameOver) return;
+  state.claims[id] = state.turn;
+
+  // Check recipes
+  checkRecipes();
+
+  state.turn = state.turn === 'pa' ? 'pb' : 'pa';
+  render();
+}
+
+function checkRecipes() {
+  for (const recipe of RECIPES) {
+    if (state.wonRecipes[recipe.id]) continue;
+    // Check if any single player owns all 3
+    for (const player of ['pa', 'pb']) {
+      if (recipe.ingredients.every(id => state.claims[id] === player)) {
+        state.wonRecipes[recipe.id] = player;
+        state.scores[player]++;
+        // First to complete any recipe wins
+        triggerWin(player, recipe.name);
+        return;
+      }
+    }
+  }
+}
+
+function triggerWin(player, recipeName) {
+  state.gameOver = true;
+  const overlay = document.getElementById('win-overlay');
+  const title = document.getElementById('win-title');
+  const desc = document.getElementById('win-desc');
+  title.style.color = player === 'pa' ? 'var(--pa)' : 'var(--pb)';
+  title.textContent = `🎉 Player ${player === 'pa' ? 'A' : 'B'} Wins!`;
+  desc.textContent = `Completed "${recipeName}" first!`;
+  overlay.classList.add('show');
+
+  const banner = document.getElementById('turn-banner');
+  banner.className = player;
+  document.getElementById('turn-text').textContent = `Player ${player === 'pa' ? 'A' : 'B'} completed ${recipeName}!`;
+}
+
+function resetGame() {
+  document.getElementById('win-overlay').classList.remove('show');
+  initState();
+  render();
+}
+
+initState();
+render();
+</script>
+</body>
+</html>
